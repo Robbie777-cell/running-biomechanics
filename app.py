@@ -779,7 +779,7 @@ def plotly_charts(r):
 
         # ── Cadencia ──
         if len(t_cad) > 2:
-            fig.add_hrect(y0=170, y1=185, row=1, col=1,
+            fig.add_hrect(y0=170, y1=185,
                           fillcolor="rgba(57,217,138,0.07)", line_width=0)
             fig.add_trace(go.Scatter(
                 x=t_cad/60, y=cad_v, mode='lines',
@@ -787,7 +787,7 @@ def plotly_charts(r):
                 fill='tozeroy', fillcolor="rgba(57,217,138,0.06)",
                 hovertemplate="<b>%{y:.0f} ppm</b><br>%{x:.1f} min<extra></extra>"
             ), row=1, col=1)
-            fig.add_hline(y=cad, row=1, col=1,
+            fig.add_hline(y=cad,
                           line=dict(color=ACCENT, dash='dot', width=1.2),
                           annotation_text=f" {cad:.0f} avg",
                           annotation_font=dict(color=ACCENT, size=9, family="Space Grotesk"))
@@ -821,7 +821,7 @@ def plotly_charts(r):
                 fill='tozeroy', fillcolor="rgba(200,255,0,0.07)",
                 hovertemplate="<b>%{y:.2f} m/s</b><br>%{x:.1f} min<extra></extra>"
             ), row=1, col=3)
-            fig.add_hline(y=np.mean(sp), row=1, col=3,
+            fig.add_hline(y=np.mean(sp),
                           line=dict(color=T, dash='dot', width=1),
                           annotation_text=f" {np.mean(sp):.2f} avg",
                           annotation_font=dict(color=T, size=9, family="Space Grotesk"))
@@ -1205,29 +1205,34 @@ if "Nueva" in page:
         st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
         st.markdown('<div class="stitle">// MÉTRICAS DE SESIÓN</div>', unsafe_allow_html=True)
 
-        cols = st.columns(6, gap="small")
-        cards = [
+        cards_data = [
             ("RUNNING ECONOMY", f"{r['rei']:.0f}", "/100", rc,
              "BUENO" if rc==GOOD else "MODERADO" if rc==WARN else "MEJORAR",
-             r["rei"]/100, 1),
+             r["rei"]/100),
             ("GROUND SHOCK", f"{r['gss']:.1f}", "m/s²", gc,
              "BUENO" if gc==GOOD else "MODERADO" if gc==WARN else "ALTO",
-             1-np.clip(r["gss"]/20,0,1), 2),
+             1-np.clip(r["gss"]/20,0,1)),
             ("CADENCIA", f"{r['cadence']:.0f}", "ppm", cc,
              "ÓPTIMA" if cc==GOOD else "REVISAR",
-             np.clip((r["cadence"]-120)/100,0,1), 3),
+             np.clip((r["cadence"]-120)/100,0,1)),
             ("ASIMETRÍA", f"{r['asymmetry']:.1f}", "%", ac,
              "OK" if ac==GOOD else "LEVE" if ac==WARN else "ALTO",
-             1-np.clip(r["asymmetry"]/20,0,1), 4),
-            ("VELOCIDAD", f"{spd:.2f}", f"m/s  ·  {mp_m}m{mp_s:02d}s/km", ACCENT2,
-             "", np.clip(spd/5,0,1), 5),
+             1-np.clip(r["asymmetry"]/20,0,1)),
+            ("VELOCIDAD", f"{spd:.2f}", f"m/s · {mp_m}m{mp_s:02d}s/km", ACCENT2,
+             "", np.clip(spd/5,0,1)),
             ("FATIGUE INDEX", fvs, fsym, ftc,
              "ESTABLE" if fsym=="—" else "AUMENTANDO" if fsym=="▲" else "BAJANDO",
-             None, 6),
+             None),
         ]
-        for col,(label,val,unit,color,sub,bf,delay) in zip(cols,cards):
-            with col:
-                st.markdown(mcard(label,val,unit,color,sub,bf,delay), unsafe_allow_html=True)
+        _cards_html = '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.75rem;margin-bottom:1rem;">'
+        for (label,val,unit,color,sub,bf) in cards_data:
+            _bar = ""
+            if bf is not None:
+                _pct = int(np.clip(bf,0,1)*100)
+                _bar = f'<div style="height:3px;background:{BORDER};border-radius:2px;margin:0.8rem 0.5rem 0;"><div style="height:100%;width:{_pct}%;background:{color};border-radius:2px;"></div></div>'
+            _cards_html += f"""<div style="background:{CARD};border:1px solid {BORDER};border-top:2px solid {color};border-radius:8px;padding:1.2rem 0.8rem 1rem;text-align:center;"><div style="font-family:Space Grotesk,sans-serif;font-size:0.6rem;letter-spacing:0.15em;color:{SUBTEXT};margin-bottom:0.5rem;text-transform:uppercase;">{label}</div><div style="font-family:Space Grotesk,sans-serif;font-size:2.4rem;font-weight:800;line-height:1;color:{color};">{val}</div><div style="font-family:Space Grotesk,sans-serif;font-size:0.68rem;color:{SUBTEXT};margin-top:0.3rem;">{unit}</div><div style="font-family:Space Grotesk,sans-serif;font-size:0.65rem;margin-top:0.5rem;padding:0.2rem 0.5rem;border-radius:20px;display:inline-block;border:1px solid {color};color:{color};">{sub}</div>{_bar}</div>"""
+        _cards_html += '</div>'
+        st.markdown(_cards_html, unsafe_allow_html=True)
 
         # ── GRÁFICOS INTERACTIVOS ──
         st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
