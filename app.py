@@ -20,7 +20,7 @@ warnings.filterwarnings("ignore")
 # PAGE CONFIG
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="RBA · Running Biomechanics",
+    page_title="+Statistics · Running Analytics",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -71,7 +71,7 @@ else:
 # ─────────────────────────────────────────────
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 :root {{
   --bg:      {BG};
@@ -90,7 +90,7 @@ st.markdown(f"""
 
 /* ── Reset & Base ── */
 html, body, [class*="css"] {{
-  font-family: 'Barlow', sans-serif !important;
+  font-family: 'Space Grotesk', sans-serif !important;
   background: var(--bg) !important;
   color: var(--text) !important;
 }}
@@ -116,7 +116,7 @@ html, body, [class*="css"] {{
   border-radius: 6px !important;
   cursor: pointer;
   transition: all 0.15s;
-  font-family: 'Barlow Condensed', sans-serif !important;
+  font-family: 'Space Grotesk', sans-serif !important;
   font-size: 0.9rem !important;
   letter-spacing: 0.05em;
   color: var(--sub) !important;
@@ -134,7 +134,7 @@ html, body, [class*="css"] {{
 .stButton > button {{
   background: var(--accent) !important;
   color: #000 !important;
-  font-family: 'Barlow Condensed', sans-serif !important;
+  font-family: 'Space Grotesk', sans-serif !important;
   font-size: 1rem !important;
   font-weight: 800 !important;
   letter-spacing: 0.12em !important;
@@ -159,7 +159,7 @@ html, body, [class*="css"] {{
   color: var(--text) !important;
   border: 1px solid var(--border) !important;
   border-radius: 4px !important;
-  font-family: 'Barlow', sans-serif !important;
+  font-family: 'Space Grotesk', sans-serif !important;
 }}
 .stTextInput input:focus, .stNumberInput input:focus {{
   border-color: var(--accent) !important;
@@ -189,7 +189,7 @@ html, body, [class*="css"] {{
 [data-testid="stDataFrame"] th {{
   background: var(--bg2) !important;
   color: var(--accent) !important;
-  font-family: 'Barlow Condensed', sans-serif !important;
+  font-family: 'Space Grotesk', sans-serif !important;
   font-size: 0.75rem !important;
   letter-spacing: 0.1em;
 }}
@@ -220,7 +220,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
 }}
 .stTabs [data-baseweb="tab"] {{
   color: var(--sub) !important;
-  font-family: 'Barlow Condensed', sans-serif !important;
+  font-family: 'Space Grotesk', sans-serif !important;
   font-size: 0.85rem !important;
   letter-spacing: 0.08em;
   padding: 0.7rem 1.2rem !important;
@@ -289,7 +289,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
   pointer-events: none;
 }}
 .mcard .mlabel {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 0.65rem;
   letter-spacing: 0.18em;
   color: var(--sub);
@@ -297,20 +297,20 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
   text-transform: uppercase;
 }}
 .mcard .mvalue {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 2.8rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
 }}
 .mcard .munit {{
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 0.72rem;
   color: var(--sub);
   margin-top: 0.3rem;
 }}
 .mcard .mstatus {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   margin-top: 0.6rem;
@@ -343,7 +343,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
   animation: fadeSlideUp 0.4s both;
 }}
 .rec-title {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -357,7 +357,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
 
 /* ── Section title ── */
 .stitle {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   color: var(--sub);
@@ -374,7 +374,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
   margin-bottom: 1.2rem;
 }}
 .logo-symbol {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 1.6rem;
   font-weight: 900;
   color: var(--accent);
@@ -382,7 +382,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
   line-height: 1;
 }}
 .logo-name {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 0.6rem;
   letter-spacing: 0.22em;
   color: var(--sub);
@@ -399,7 +399,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
   text-align: center;
 }}
 .stat-badge .sv {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 1.8rem;
   font-weight: 800;
   color: var(--accent);
@@ -457,7 +457,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
   to {{ opacity: 0; visibility: hidden; }}
 }}
 #splash-logo {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 5rem;
   font-weight: 900;
   color: {ACCENT};
@@ -465,7 +465,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
   animation: fadeSlideUp 0.6s cubic-bezier(0.4,0,0.2,1) both;
 }}
 #splash-sub {{
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 0.75rem;
   letter-spacing: 0.35em;
   color: {SUBTEXT};
@@ -485,7 +485,7 @@ hr {{ border-color: var(--border) !important; margin: 1.5rem 0 !important; }}
 
 <!-- SPLASH SCREEN -->
 <div id="splash">
-  <div id="splash-logo">RBA</div>
+  <div id="splash-logo">+Statistics</div>
   <div id="splash-sub">RUNNING BIOMECHANICS ANALYZER</div>
   <div id="splash-line"></div>
 </div>
@@ -1011,8 +1011,8 @@ profile = load_profile()
 with st.sidebar:
     st.markdown(f"""
     <div class="logo-wrap">
-      <div class="logo-symbol">RBA⚡</div>
-      <div class="logo-name">Running Biomechanics Analyzer</div>
+      <div class="logo-symbol">+Statistics</div>
+      <div class="logo-name">Running Analytics</div>
     </div>
     """, unsafe_allow_html=True)
 
