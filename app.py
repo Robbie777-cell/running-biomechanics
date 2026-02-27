@@ -698,7 +698,7 @@ def analyze(accel_df, gps_df, dev_name):
     }
 
 # ─────────────────────────────────────────────
-# GRÁFICOS INTERACTIVOS CON PLOTLY
+# GRÁFICOS INTERACTIVOS CON PLOTLY — VERSIÓN PREMIUM
 # ─────────────────────────────────────────────
 def plotly_charts(r):
     try:
@@ -708,98 +708,197 @@ def plotly_charts(r):
         pt=r["pt"]; pv=r["pv"]
         ft=r["fi_times"]; fv=r["fi_values"]
         cad=r["cadence"]; gps=r["gps"]
+        rei=r["rei"]; gss=r["gss"]; asym=r["asymmetry"]
         t_cad, cad_v = cad_over_time(pt)
 
-        plot_bg   = CHART_BG
-        grid_col  = BORDER
-        text_col  = SUBTEXT
-        acc_col   = ACCENT
-        good_col  = GOOD
-        warn_col  = WARN
+        P   = CHART_BG
+        G   = BORDER
+        T   = SUBTEXT
+        FONT = dict(family="Space Grotesk, sans-serif", color=T, size=11)
 
+        # ── Layout: 2 filas — fila 1: radar + cadencia | fila 2: fatigue + velocidad ──
         fig = make_subplots(
-            rows=1, cols=3,
-            subplot_titles=["CADENCIA EN EL TIEMPO","FATIGUE INDEX","VELOCIDAD GPS"],
-            horizontal_spacing=0.06
+            rows=2, cols=2,
+            subplot_titles=["PERFORMANCE RADAR", "CADENCIA EN EL TIEMPO",
+                            "FATIGUE INDEX", "VELOCIDAD GPS"],
+            specs=[[{"type": "polar"}, {"type": "xy"}],
+                   [{"type": "xy"},   {"type": "xy"}]],
+            horizontal_spacing=0.10,
+            vertical_spacing=0.16,
         )
 
-        layout_font = dict(family="Barlow Condensed, monospace", color=text_col, size=11)
+        rc = scolor(rei,(65,100),(40,65))
+        gc = scolor(gss,r["gss_good"],r["gss_warn"],invert=True)
+        cc = scolor(cad,(170,185),(160,195))
+        ac = scolor(asym,(0,5),(5,10),invert=True)
 
-        # ── Cadencia ──
-        if len(t_cad)>2:
+        # ── 1. RADAR CHART ──
+        radar_cats  = ["ECONOMY", "CADENCIA", "IMPACTO", "SIMETRÍA", "VELOCIDAD"]
+        spd_norm    = float(np.clip(r["speed"]/5*100, 0, 100))
+        radar_vals  = [
+            float(rei),
+            float(np.clip((cad-120)/80*100, 0, 100)),
+            float(np.clip((1 - gss/20)*100, 0, 100)),
+            float(np.clip((1 - asym/20)*100, 0, 100)),
+            spd_norm,
+        ]
+        radar_vals_closed = radar_vals + [radar_vals[0]]
+        radar_cats_closed = radar_cats + [radar_cats[0]]
+
+        # Fondo radar (max)
+        fig.add_trace(go.Scatterpolar(
+            r=[100]*6, theta=radar_cats_closed,
+            fill='toself', fillcolor=f"rgba(255,255,255,0.02)",
+            line=dict(color=G, width=1), showlegend=False,
+            hoverinfo='skip'
+        ), row=1, col=1)
+        # Zona objetivo
+        fig.add_trace(go.Scatterpolar(
+            r=[80]*6, theta=radar_cats_closed,
+            fill='toself', fillcolor=f"rgba(200,255,0,0.04)",
+            line=dict(color=ACCENT, width=0.8, dash='dot'), showlegend=False,
+            hoverinfo='skip'
+        ), row=1, col=1)
+        # Datos reales
+        fig.add_trace(go.Scatterpolar(
+            r=radar_vals_closed, theta=radar_cats_closed,
+            fill='toself',
+            fillcolor=f"rgba(200,255,0,0.12)",
+            line=dict(color=ACCENT, width=2.5),
+            marker=dict(size=7, color=ACCENT, line=dict(color=P, width=1.5)),
+            showlegend=False,
+            hovertemplate="<b>%{theta}</b><br>%{r:.0f}/100<extra></extra>"
+        ), row=1, col=1)
+
+        # ── 2. CADENCIA ──
+        if len(t_cad) > 2:
+            # Zona óptima sombreada
+            fig.add_hrect(y0=170, y1=185, row=1, col=2,
+                          fillcolor="rgba(57,217,138,0.07)", line_width=0)
+            # Área
             fig.add_trace(go.Scatter(
                 x=t_cad/60, y=cad_v,
                 mode='lines',
-                line=dict(color=good_col, width=2),
-                fill='tozeroy', fillcolor=f"rgba(57,217,138,0.07)",
-                name="Cadencia", hovertemplate="%{y:.0f} ppm<extra></extra>"
-            ), row=1, col=1)
-            fig.add_hrect(y0=170, y1=185, row=1, col=1,
-                          fillcolor=f"rgba(57,217,138,0.06)", line_width=0)
-            fig.add_hline(y=cad, row=1, col=1,
-                          line=dict(color=acc_col, dash='dot', width=1),
-                          annotation_text=f"  {cad:.0f} ppm",
-                          annotation_font=dict(color=acc_col, size=10))
+                line=dict(color=cc, width=2.5, shape='spline'),
+                fill='tozeroy', fillcolor=f"rgba(57,217,138,0.06)",
+                name="Cadencia",
+                hovertemplate="<b>%{y:.0f} ppm</b><br>%{x:.1f} min<extra></extra>"
+            ), row=1, col=2)
+            # Media
+            fig.add_hline(y=cad, row=1, col=2,
+                          line=dict(color=ACCENT, dash='dot', width=1.2),
+                          annotation_text=f" {cad:.0f} ppm avg",
+                          annotation_font=dict(color=ACCENT, size=9, family="Space Grotesk"))
+            # Anotación zona óptima
+            fig.add_annotation(
+                x=0.98, y=177.5, xref="x2 domain", yref="y2",
+                text="ZONA ÓPTIMA", showarrow=False,
+                font=dict(color=GOOD, size=8, family="Space Grotesk"),
+                xanchor="right"
+            )
 
-        # ── Fatigue ──
+        # ── 3. FATIGUE INDEX ──
         if ft and fv:
-            fi_arr=np.array(fv); fi_t=np.array(ft)
-            sl=np.polyfit(fi_t,fi_arr,1)
-            tc=warn_col if sl[0]>0.0001 else (good_col if sl[0]<-0.0001 else acc_col)
+            fi_arr = np.array(fv); fi_t = np.array(ft)
+            sl = np.polyfit(fi_t, fi_arr, 1)
+            tc = WARN if sl[0]>0.0001 else (GOOD if sl[0]<-0.0001 else ACCENT)
+            trend = np.poly1d(sl)(fi_t)
+
             fig.add_trace(go.Scatter(
                 x=fi_t, y=fi_arr,
                 mode='lines+markers',
-                line=dict(color=tc, width=2),
-                marker=dict(size=6, color=plot_bg, line=dict(color=tc, width=1.5)),
-                fill='tozeroy', fillcolor=f"rgba(255,203,71,0.07)",
-                name="Fatigue", hovertemplate="%{y:.3f}<extra></extra>"
-            ), row=1, col=2)
-            trend=np.poly1d(sl)(fi_t)
+                line=dict(color=tc, width=2.5, shape='spline'),
+                marker=dict(size=7, color=P, line=dict(color=tc, width=2)),
+                fill='tozeroy', fillcolor=f"rgba(255,203,71,0.06)",
+                name="Fatigue",
+                hovertemplate="<b>%{y:.3f}</b><br>%{x:.1f} min<extra></extra>"
+            ), row=2, col=1)
             fig.add_trace(go.Scatter(
                 x=fi_t, y=trend,
-                mode='lines', line=dict(color=acc_col, dash='dash', width=1),
-                name="Tendencia", showlegend=False,
+                mode='lines',
+                line=dict(color=ACCENT, dash='dash', width=1.5),
+                showlegend=False, name="Tendencia",
                 hovertemplate="tendencia: %{y:.3f}<extra></extra>"
-            ), row=1, col=2)
+            ), row=2, col=1)
+            # Etiqueta tendencia
+            dir_label = "▲ AUMENTANDO" if sl[0]>0.0001 else ("▼ MEJORANDO" if sl[0]<-0.0001 else "— ESTABLE")
+            fig.add_annotation(
+                x=0.98, y=0.95, xref="x3 domain", yref="y3 domain",
+                text=dir_label, showarrow=False,
+                font=dict(color=tc, size=9, family="Space Grotesk"),
+                xanchor="right"
+            )
 
-        # ── Velocidad ──
+        # ── 4. VELOCIDAD / IMPACTO ──
         if gps is not None and 'speed' in gps.columns:
-            tg=gps['time'].values/60; sp=gps['speed'].values
+            tg = gps['time'].values/60; sp = gps['speed'].values
+            avg_sp = np.mean(sp)
+            # Colorear según velocidad (verde = rápido)
             fig.add_trace(go.Scatter(
                 x=tg, y=sp,
                 mode='lines',
-                line=dict(color=acc_col, width=2),
+                line=dict(color=ACCENT, width=2.5, shape='spline'),
                 fill='tozeroy', fillcolor=f"rgba(200,255,0,0.07)",
-                name="Velocidad", hovertemplate="%{y:.2f} m/s<extra></extra>"
-            ), row=1, col=3)
-            fig.add_hline(y=np.mean(sp), row=1, col=3,
-                          line=dict(color=text_col, dash='dot', width=1),
-                          annotation_text=f"  {np.mean(sp):.2f} m/s",
-                          annotation_font=dict(color=text_col, size=10))
+                name="Velocidad",
+                hovertemplate="<b>%{y:.2f} m/s</b><br>%{x:.1f} min<extra></extra>"
+            ), row=2, col=2)
+            fig.add_hline(y=avg_sp, row=2, col=2,
+                          line=dict(color=T, dash='dot', width=1),
+                          annotation_text=f" {avg_sp:.2f} m/s avg",
+                          annotation_font=dict(color=T, size=9, family="Space Grotesk"))
+        elif len(pv) > 4:
+            imp = np.abs(pv)
+            counts, bins = np.histogram(imp, bins=40)
+            fig.add_trace(go.Bar(
+                x=(bins[:-1]+bins[1:])/2, y=counts,
+                marker_color=ACCENT, opacity=0.6,
+                name="Impacto",
+                hovertemplate="<b>%{x:.1f} m/s²</b><br>%{y} pasos<extra></extra>"
+            ), row=2, col=2)
+            fig.add_vline(x=np.mean(imp), row=2, col=2,
+                          line=dict(color=TEXT, dash='dot', width=1.2))
 
+        # ── LAYOUT GLOBAL ──
         fig.update_layout(
-            paper_bgcolor=plot_bg,
-            plot_bgcolor=plot_bg,
-            font=layout_font,
+            paper_bgcolor=P,
+            plot_bgcolor=P,
+            font=FONT,
             showlegend=False,
-            height=280,
-            margin=dict(l=10, r=10, t=40, b=30),
+            height=580,
+            margin=dict(l=10, r=10, t=50, b=20),
+            polar=dict(
+                bgcolor=P,
+                radialaxis=dict(
+                    visible=True, range=[0, 100],
+                    showticklabels=False, showline=False,
+                    gridcolor=G, gridwidth=0.8,
+                ),
+                angularaxis=dict(
+                    tickfont=dict(size=9, color=T, family="Space Grotesk"),
+                    linecolor=G, gridcolor=G,
+                ),
+            ),
         )
-        for i in range(1,4):
+
+        # ── EJES XY ──
+        xy_axes = [(1,2),(2,1),(2,2)]
+        for row,col in xy_axes:
             fig.update_xaxes(
-                showgrid=True, gridcolor=grid_col, gridwidth=0.5,
-                zeroline=False, tickfont=dict(size=9, color=text_col),
-                title_text="min", title_font=dict(size=9, color=text_col),
-                row=1, col=i
+                showgrid=True, gridcolor=G, gridwidth=0.5,
+                zeroline=False, tickfont=dict(size=9, color=T),
+                title_text="min", title_font=dict(size=9, color=T),
+                linecolor=G, row=row, col=col
             )
             fig.update_yaxes(
-                showgrid=True, gridcolor=grid_col, gridwidth=0.5,
-                zeroline=False, tickfont=dict(size=9, color=text_col),
-                row=1, col=i
+                showgrid=True, gridcolor=G, gridwidth=0.5,
+                zeroline=False, tickfont=dict(size=9, color=T),
+                linecolor=G, row=row, col=col
             )
+
+        # ── TÍTULOS DE SUBPLOT ──
         for ann in fig.layout.annotations:
-            ann.font.color = ACCENT
-            ann.font.size  = 10
+            ann.font = dict(color=ACCENT, size=10, family="Space Grotesk")
+
         return fig
     except ImportError:
         return None
@@ -843,7 +942,7 @@ def plotly_comparison(history, n):
                 ), row=row, col=col)
         fig.update_layout(
             paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG,
-            font=dict(family="Barlow Condensed", color=SUBTEXT, size=11),
+            font=dict(family="Space Grotesk", color=SUBTEXT, size=11),
             height=500, margin=dict(l=10,r=10,t=50,b=20)
         )
         for ann in fig.layout.annotations:
@@ -1037,11 +1136,11 @@ with st.sidebar:
         <div style="margin-top:1.5rem; padding:0.8rem; background:{CARD};
              border:1px solid {BORDER}; border-radius:6px;">
           <div style="color:{SUBTEXT}; font-size:0.6rem; letter-spacing:0.15em;
-               margin-bottom:3px; font-family:'Barlow Condensed';">ATLETA</div>
+               margin-bottom:3px; font-family:'Space Grotesk';">ATLETA</div>
           <div style="color:{TEXT}; font-size:0.9rem; font-weight:600;
-               font-family:'Barlow Condensed';">{profile['name'].upper()}</div>
+               font-family:'Space Grotesk';">{profile['name'].upper()}</div>
           <div style="color:{ACCENT}; font-size:0.65rem; margin-top:2px;
-               font-family:'Barlow Condensed';">{profile.get('level','—').upper()}</div>
+               font-family:'Space Grotesk';">{profile.get('level','—').upper()}</div>
         </div>""", unsafe_allow_html=True)
 
     # Stats rápidas en sidebar
@@ -1051,22 +1150,22 @@ with st.sidebar:
         <div style="margin-top:1rem; padding:0.8rem; background:{CARD};
              border:1px solid {BORDER}; border-radius:6px;">
           <div style="color:{SUBTEXT}; font-size:0.6rem; letter-spacing:0.15em;
-               margin-bottom:6px; font-family:'Barlow Condensed';">RESUMEN</div>
+               margin-bottom:6px; font-family:'Space Grotesk';">RESUMEN</div>
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="text-align:center">
               <div style="color:{ACCENT}; font-size:1.2rem; font-weight:800;
-                   font-family:'Barlow Condensed'">{len(history)}</div>
-              <div style="color:{SUBTEXT}; font-size:0.58rem; font-family:'Barlow Condensed'">SESIONES</div>
+                   font-family:'Space Grotesk'">{len(history)}</div>
+              <div style="color:{SUBTEXT}; font-size:0.58rem; font-family:'Space Grotesk'">SESIONES</div>
             </div>
             <div style="text-align:center">
               <div style="color:{ACCENT}; font-size:1.2rem; font-weight:800;
-                   font-family:'Barlow Condensed'">{np.mean([s['rei'] for s in history]):.0f}</div>
-              <div style="color:{SUBTEXT}; font-size:0.58rem; font-family:'Barlow Condensed'">REI MEDIO</div>
+                   font-family:'Space Grotesk'">{np.mean([s['rei'] for s in history]):.0f}</div>
+              <div style="color:{SUBTEXT}; font-size:0.58rem; font-family:'Space Grotesk'">REI MEDIO</div>
             </div>
             <div style="text-align:center">
               <div style="color:{ACCENT}; font-size:1.2rem; font-weight:800;
-                   font-family:'Barlow Condensed'">{np.mean([s['cadence'] for s in history]):.0f}</div>
-              <div style="color:{SUBTEXT}; font-size:0.58rem; font-family:'Barlow Condensed'">CAD MEDIA</div>
+                   font-family:'Space Grotesk'">{np.mean([s['cadence'] for s in history]):.0f}</div>
+              <div style="color:{SUBTEXT}; font-size:0.58rem; font-family:'Space Grotesk'">CAD MEDIA</div>
             </div>
           </div>
         </div>""", unsafe_allow_html=True)
@@ -1079,7 +1178,7 @@ if "Nueva" in page:
 
     col1, col2 = st.columns([2, 1], gap="large")
     with col1:
-        st.markdown(f'<div style="color:{SUBTEXT}; font-size:0.75rem; letter-spacing:0.1em; margin-bottom:0.6rem; font-family:\'Barlow Condensed\'">ARCHIVOS DE SENSOR</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="color:{SUBTEXT}; font-size:0.75rem; letter-spacing:0.1em; margin-bottom:0.6rem; font-family:\'Space Grotesk\'">ARCHIVOS DE SENSOR</div>', unsafe_allow_html=True)
         accel_f = st.file_uploader("Acelerómetro (CSV)", type=["csv"], key="au",
                                     label_visibility="collapsed",
                                     help="Archivo CSV del acelerómetro — columnas: time, x, y, z")
@@ -1089,7 +1188,7 @@ if "Nueva" in page:
                                     help="Opcional: columnas time, speed (m/s)")
 
     with col2:
-        st.markdown(f'<div style="color:{SUBTEXT}; font-size:0.75rem; letter-spacing:0.1em; margin-bottom:0.6rem; font-family:\'Barlow Condensed\'">CONFIGURACIÓN</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="color:{SUBTEXT}; font-size:0.75rem; letter-spacing:0.1em; margin-bottom:0.6rem; font-family:\'Space Grotesk\'">CONFIGURACIÓN</div>', unsafe_allow_html=True)
         dev = st.selectbox("Posición del dispositivo",
                            list(DEVICE_POSITIONS.keys()),
                            index=list(DEVICE_POSITIONS.keys()).index(
@@ -1252,7 +1351,7 @@ elif "Historial" in page:
         st.markdown(f"""
         <div style="text-align:center; padding:4rem; color:{SUBTEXT};">
           <div style="font-size:3rem; margin-bottom:0.5rem">📭</div>
-          <div style="font-family:'Barlow Condensed'; font-size:1rem; letter-spacing:0.1em">
+          <div style="font-family:'Space Grotesk'; font-size:1rem; letter-spacing:0.1em">
             SIN SESIONES REGISTRADAS
           </div>
           <div style="font-size:0.8rem; margin-top:0.5rem">
@@ -1302,7 +1401,7 @@ elif "Comparar" in page:
         st.markdown(f"""
         <div style="text-align:center; padding:4rem; color:{SUBTEXT};">
           <div style="font-size:3rem; margin-bottom:0.5rem">📊</div>
-          <div style="font-family:'Barlow Condensed'; font-size:1rem; letter-spacing:0.1em">
+          <div style="font-family:'Space Grotesk'; font-size:1rem; letter-spacing:0.1em">
             NECESITAS AL MENOS 2 SESIONES
           </div>
         </div>""", unsafe_allow_html=True)
@@ -1334,14 +1433,14 @@ elif "Comparar" in page:
             with col:
                 st.markdown(f"""
                 <div class="trend-card" style="border-top-color:{color}">
-                  <div style="font-family:'Barlow Condensed'; font-size:0.65rem;
+                  <div style="font-family:'Space Grotesk'; font-size:0.65rem;
                        letter-spacing:0.15em; color:{SUBTEXT}; margin-bottom:0.4rem">{name}</div>
-                  <div style="font-family:'Barlow Condensed'; font-size:2.2rem;
+                  <div style="font-family:'Space Grotesk'; font-size:2.2rem;
                        font-weight:800; color:{color}">{arrow}</div>
                   <div style="font-size:0.72rem; color:{SUBTEXT}; margin-top:0.2rem">
                     {abs(sl):.2f} {unit}/sesión
                   </div>
-                  <div style="font-family:'Barlow Condensed'; font-size:0.7rem;
+                  <div style="font-family:'Space Grotesk'; font-size:0.7rem;
                        color:{tc}; margin-top:0.4rem; letter-spacing:0.1em">
                     {'MEJORANDO' if improving else 'REVISAR'}
                   </div>
@@ -1356,12 +1455,12 @@ elif "Perfil" in page:
     with st.form("pf"):
         c1,c2 = st.columns(2, gap="large")
         with c1:
-            st.markdown(f'<div style="color:{SUBTEXT}; font-size:0.7rem; letter-spacing:0.1em; margin-bottom:0.3rem; font-family:\'Barlow Condensed\'">DATOS PERSONALES</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="color:{SUBTEXT}; font-size:0.7rem; letter-spacing:0.1em; margin-bottom:0.3rem; font-family:\'Space Grotesk\'">DATOS PERSONALES</div>', unsafe_allow_html=True)
             name   = st.text_input("Nombre", value=profile.get("name",""), placeholder="Tu nombre")
             weight = st.number_input("Peso (kg)", 30, 200, int(profile.get("weight",70)))
             height = st.number_input("Altura (cm)", 140, 220, int(profile.get("height",170)))
         with c2:
-            st.markdown(f'<div style="color:{SUBTEXT}; font-size:0.7rem; letter-spacing:0.1em; margin-bottom:0.3rem; font-family:\'Barlow Condensed\'">PREFERENCIAS</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="color:{SUBTEXT}; font-size:0.7rem; letter-spacing:0.1em; margin-bottom:0.3rem; font-family:\'Space Grotesk\'">PREFERENCIAS</div>', unsafe_allow_html=True)
             level  = st.selectbox("Nivel",
                                   ["Principiante","Intermedio","Avanzado","Élite"],
                                   index=["Principiante","Intermedio","Avanzado","Élite"].index(
