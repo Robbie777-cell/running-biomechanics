@@ -700,7 +700,64 @@ def analyze(accel_df, gps_df, dev_name):
 # ─────────────────────────────────────────────
 # GRÁFICOS INTERACTIVOS CON PLOTLY — VERSIÓN PREMIUM
 # ─────────────────────────────────────────────
+def plotly_radar(r):
+    """Figura separada solo para el radar chart."""
+    try:
+        import plotly.graph_objects as go
+        P = CHART_BG; G = BORDER; T = SUBTEXT
+        rei=r["rei"]; cad=r["cadence"]; gss=r["gss"]; asym=r["asymmetry"]
+
+        radar_cats = ["ECONOMY", "CADENCIA", "IMPACTO", "SIMETRÍA", "VELOCIDAD"]
+        radar_vals = [
+            float(rei),
+            float(np.clip((cad-120)/80*100, 0, 100)),
+            float(np.clip((1 - gss/20)*100, 0, 100)),
+            float(np.clip((1 - asym/20)*100, 0, 100)),
+            float(np.clip(r["speed"]/5*100, 0, 100)),
+        ]
+        rv = radar_vals + [radar_vals[0]]
+        rc = radar_cats + [radar_cats[0]]
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatterpolar(
+            r=[100]*6, theta=rc, fill='toself',
+            fillcolor="rgba(255,255,255,0.02)",
+            line=dict(color=G, width=1), showlegend=False, hoverinfo='skip'
+        ))
+        fig.add_trace(go.Scatterpolar(
+            r=[80]*6, theta=rc, fill='toself',
+            fillcolor="rgba(200,255,0,0.04)",
+            line=dict(color=ACCENT, width=0.8, dash='dot'),
+            showlegend=False, hoverinfo='skip'
+        ))
+        fig.add_trace(go.Scatterpolar(
+            r=rv, theta=rc, fill='toself',
+            fillcolor="rgba(200,255,0,0.15)",
+            line=dict(color=ACCENT, width=2.5),
+            marker=dict(size=7, color=ACCENT, line=dict(color=P, width=1.5)),
+            showlegend=False,
+            hovertemplate="<b>%{theta}</b><br>%{r:.0f}/100<extra></extra>"
+        ))
+        fig.update_layout(
+            paper_bgcolor=P, font=dict(family="Space Grotesk, sans-serif", color=T, size=11),
+            height=300, margin=dict(l=20, r=20, t=40, b=20),
+            title=dict(text="PERFORMANCE RADAR", font=dict(color=ACCENT, size=10,
+                       family="Space Grotesk"), x=0.5),
+            polar=dict(
+                bgcolor=P,
+                radialaxis=dict(visible=True, range=[0,100], showticklabels=False,
+                                showline=False, gridcolor=G, gridwidth=0.8),
+                angularaxis=dict(tickfont=dict(size=9, color=T, family="Space Grotesk"),
+                                 linecolor=G, gridcolor=G),
+            )
+        )
+        return fig
+    except Exception:
+        return None
+
+
 def plotly_charts(r):
+    """3 gráficas XY: cadencia, fatigue, velocidad."""
     try:
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
@@ -708,197 +765,90 @@ def plotly_charts(r):
         pt=r["pt"]; pv=r["pv"]
         ft=r["fi_times"]; fv=r["fi_values"]
         cad=r["cadence"]; gps=r["gps"]
-        rei=r["rei"]; gss=r["gss"]; asym=r["asymmetry"]
         t_cad, cad_v = cad_over_time(pt)
 
-        P   = CHART_BG
-        G   = BORDER
-        T   = SUBTEXT
+        P = CHART_BG; G = BORDER; T = SUBTEXT
         FONT = dict(family="Space Grotesk, sans-serif", color=T, size=11)
+        cc = scolor(cad,(170,185),(160,195))
 
-        # ── Layout: 2 filas — fila 1: radar + cadencia | fila 2: fatigue + velocidad ──
         fig = make_subplots(
-            rows=2, cols=2,
-            subplot_titles=["PERFORMANCE RADAR", "CADENCIA EN EL TIEMPO",
-                            "FATIGUE INDEX", "VELOCIDAD GPS"],
-            specs=[[{"type": "polar"}, {"type": "xy"}],
-                   [{"type": "xy"},   {"type": "xy"}]],
-            horizontal_spacing=0.10,
-            vertical_spacing=0.16,
+            rows=1, cols=3,
+            subplot_titles=["CADENCIA EN EL TIEMPO", "FATIGUE INDEX", "VELOCIDAD GPS"],
+            horizontal_spacing=0.07
         )
 
-        rc = scolor(rei,(65,100),(40,65))
-        gc = scolor(gss,r["gss_good"],r["gss_warn"],invert=True)
-        cc = scolor(cad,(170,185),(160,195))
-        ac = scolor(asym,(0,5),(5,10),invert=True)
-
-        # ── 1. RADAR CHART ──
-        radar_cats  = ["ECONOMY", "CADENCIA", "IMPACTO", "SIMETRÍA", "VELOCIDAD"]
-        spd_norm    = float(np.clip(r["speed"]/5*100, 0, 100))
-        radar_vals  = [
-            float(rei),
-            float(np.clip((cad-120)/80*100, 0, 100)),
-            float(np.clip((1 - gss/20)*100, 0, 100)),
-            float(np.clip((1 - asym/20)*100, 0, 100)),
-            spd_norm,
-        ]
-        radar_vals_closed = radar_vals + [radar_vals[0]]
-        radar_cats_closed = radar_cats + [radar_cats[0]]
-
-        # Fondo radar (max)
-        fig.add_trace(go.Scatterpolar(
-            r=[100]*6, theta=radar_cats_closed,
-            fill='toself', fillcolor=f"rgba(255,255,255,0.02)",
-            line=dict(color=G, width=1), showlegend=False,
-            hoverinfo='skip'
-        ), row=1, col=1)
-        # Zona objetivo
-        fig.add_trace(go.Scatterpolar(
-            r=[80]*6, theta=radar_cats_closed,
-            fill='toself', fillcolor=f"rgba(200,255,0,0.04)",
-            line=dict(color=ACCENT, width=0.8, dash='dot'), showlegend=False,
-            hoverinfo='skip'
-        ), row=1, col=1)
-        # Datos reales
-        fig.add_trace(go.Scatterpolar(
-            r=radar_vals_closed, theta=radar_cats_closed,
-            fill='toself',
-            fillcolor=f"rgba(200,255,0,0.12)",
-            line=dict(color=ACCENT, width=2.5),
-            marker=dict(size=7, color=ACCENT, line=dict(color=P, width=1.5)),
-            showlegend=False,
-            hovertemplate="<b>%{theta}</b><br>%{r:.0f}/100<extra></extra>"
-        ), row=1, col=1)
-
-        # ── 2. CADENCIA ──
+        # ── Cadencia ──
         if len(t_cad) > 2:
-            # Zona óptima sombreada
-            fig.add_hrect(y0=170, y1=185, row=1, col=2,
+            fig.add_hrect(y0=170, y1=185, row=1, col=1,
                           fillcolor="rgba(57,217,138,0.07)", line_width=0)
-            # Área
             fig.add_trace(go.Scatter(
-                x=t_cad/60, y=cad_v,
-                mode='lines',
+                x=t_cad/60, y=cad_v, mode='lines',
                 line=dict(color=cc, width=2.5, shape='spline'),
-                fill='tozeroy', fillcolor=f"rgba(57,217,138,0.06)",
-                name="Cadencia",
+                fill='tozeroy', fillcolor="rgba(57,217,138,0.06)",
                 hovertemplate="<b>%{y:.0f} ppm</b><br>%{x:.1f} min<extra></extra>"
-            ), row=1, col=2)
-            # Media
-            fig.add_hline(y=cad, row=1, col=2,
+            ), row=1, col=1)
+            fig.add_hline(y=cad, row=1, col=1,
                           line=dict(color=ACCENT, dash='dot', width=1.2),
-                          annotation_text=f" {cad:.0f} ppm avg",
+                          annotation_text=f" {cad:.0f} avg",
                           annotation_font=dict(color=ACCENT, size=9, family="Space Grotesk"))
-            # Anotación zona óptima
-            fig.add_annotation(
-                x=0.98, y=177.5, xref="x2 domain", yref="y2",
-                text="ZONA ÓPTIMA", showarrow=False,
-                font=dict(color=GOOD, size=8, family="Space Grotesk"),
-                xanchor="right"
-            )
 
-        # ── 3. FATIGUE INDEX ──
+        # ── Fatigue ──
         if ft and fv:
-            fi_arr = np.array(fv); fi_t = np.array(ft)
-            sl = np.polyfit(fi_t, fi_arr, 1)
-            tc = WARN if sl[0]>0.0001 else (GOOD if sl[0]<-0.0001 else ACCENT)
-            trend = np.poly1d(sl)(fi_t)
-
+            fi_arr=np.array(fv); fi_t=np.array(ft)
+            sl=np.polyfit(fi_t,fi_arr,1)
+            tc=WARN if sl[0]>0.0001 else (GOOD if sl[0]<-0.0001 else ACCENT)
+            trend=np.poly1d(sl)(fi_t)
             fig.add_trace(go.Scatter(
-                x=fi_t, y=fi_arr,
-                mode='lines+markers',
+                x=fi_t, y=fi_arr, mode='lines+markers',
                 line=dict(color=tc, width=2.5, shape='spline'),
-                marker=dict(size=7, color=P, line=dict(color=tc, width=2)),
-                fill='tozeroy', fillcolor=f"rgba(255,203,71,0.06)",
-                name="Fatigue",
+                marker=dict(size=6, color=P, line=dict(color=tc, width=2)),
+                fill='tozeroy', fillcolor="rgba(255,203,71,0.06)",
                 hovertemplate="<b>%{y:.3f}</b><br>%{x:.1f} min<extra></extra>"
-            ), row=2, col=1)
+            ), row=1, col=2)
             fig.add_trace(go.Scatter(
-                x=fi_t, y=trend,
-                mode='lines',
+                x=fi_t, y=trend, mode='lines',
                 line=dict(color=ACCENT, dash='dash', width=1.5),
-                showlegend=False, name="Tendencia",
+                showlegend=False,
                 hovertemplate="tendencia: %{y:.3f}<extra></extra>"
-            ), row=2, col=1)
-            # Etiqueta tendencia
-            dir_label = "▲ AUMENTANDO" if sl[0]>0.0001 else ("▼ MEJORANDO" if sl[0]<-0.0001 else "— ESTABLE")
-            fig.add_annotation(
-                x=0.98, y=0.95, xref="x3 domain", yref="y3 domain",
-                text=dir_label, showarrow=False,
-                font=dict(color=tc, size=9, family="Space Grotesk"),
-                xanchor="right"
-            )
+            ), row=1, col=2)
 
-        # ── 4. VELOCIDAD / IMPACTO ──
+        # ── Velocidad ──
         if gps is not None and 'speed' in gps.columns:
-            tg = gps['time'].values/60; sp = gps['speed'].values
-            avg_sp = np.mean(sp)
-            # Colorear según velocidad (verde = rápido)
+            tg=gps['time'].values/60; sp=gps['speed'].values
             fig.add_trace(go.Scatter(
-                x=tg, y=sp,
-                mode='lines',
+                x=tg, y=sp, mode='lines',
                 line=dict(color=ACCENT, width=2.5, shape='spline'),
-                fill='tozeroy', fillcolor=f"rgba(200,255,0,0.07)",
-                name="Velocidad",
+                fill='tozeroy', fillcolor="rgba(200,255,0,0.07)",
                 hovertemplate="<b>%{y:.2f} m/s</b><br>%{x:.1f} min<extra></extra>"
-            ), row=2, col=2)
-            fig.add_hline(y=avg_sp, row=2, col=2,
+            ), row=1, col=3)
+            fig.add_hline(y=np.mean(sp), row=1, col=3,
                           line=dict(color=T, dash='dot', width=1),
-                          annotation_text=f" {avg_sp:.2f} m/s avg",
+                          annotation_text=f" {np.mean(sp):.2f} avg",
                           annotation_font=dict(color=T, size=9, family="Space Grotesk"))
         elif len(pv) > 4:
-            imp = np.abs(pv)
-            counts, bins = np.histogram(imp, bins=40)
+            imp=np.abs(pv)
+            counts,bins=np.histogram(imp,bins=40)
             fig.add_trace(go.Bar(
                 x=(bins[:-1]+bins[1:])/2, y=counts,
                 marker_color=ACCENT, opacity=0.6,
-                name="Impacto",
                 hovertemplate="<b>%{x:.1f} m/s²</b><br>%{y} pasos<extra></extra>"
-            ), row=2, col=2)
-            fig.add_vline(x=np.mean(imp), row=2, col=2,
-                          line=dict(color=TEXT, dash='dot', width=1.2))
+            ), row=1, col=3)
 
-        # ── LAYOUT GLOBAL ──
         fig.update_layout(
-            paper_bgcolor=P,
-            plot_bgcolor=P,
-            font=FONT,
-            showlegend=False,
-            height=580,
-            margin=dict(l=10, r=10, t=50, b=20),
-            polar=dict(
-                bgcolor=P,
-                radialaxis=dict(
-                    visible=True, range=[0, 100],
-                    showticklabels=False, showline=False,
-                    gridcolor=G, gridwidth=0.8,
-                ),
-                angularaxis=dict(
-                    tickfont=dict(size=9, color=T, family="Space Grotesk"),
-                    linecolor=G, gridcolor=G,
-                ),
-            ),
+            paper_bgcolor=P, plot_bgcolor=P, font=FONT,
+            showlegend=False, height=300,
+            margin=dict(l=10, r=10, t=40, b=30),
         )
-
-        # ── EJES XY ──
-        xy_axes = [(1,2),(2,1),(2,2)]
-        for row,col in xy_axes:
-            fig.update_xaxes(
-                showgrid=True, gridcolor=G, gridwidth=0.5,
-                zeroline=False, tickfont=dict(size=9, color=T),
-                title_text="min", title_font=dict(size=9, color=T),
-                linecolor=G, row=row, col=col
-            )
-            fig.update_yaxes(
-                showgrid=True, gridcolor=G, gridwidth=0.5,
-                zeroline=False, tickfont=dict(size=9, color=T),
-                linecolor=G, row=row, col=col
-            )
-
-        # ── TÍTULOS DE SUBPLOT ──
+        for i in range(1,4):
+            fig.update_xaxes(showgrid=True, gridcolor=G, gridwidth=0.5,
+                             zeroline=False, tickfont=dict(size=9, color=T),
+                             title_text="min", title_font=dict(size=9, color=T),
+                             linecolor=G, row=1, col=i)
+            fig.update_yaxes(showgrid=True, gridcolor=G, gridwidth=0.5,
+                             zeroline=False, tickfont=dict(size=9, color=T),
+                             linecolor=G, row=1, col=i)
         for ann in fig.layout.annotations:
             ann.font = dict(color=ACCENT, size=10, family="Space Grotesk")
-
         return fig
     except ImportError:
         return None
@@ -1283,14 +1233,19 @@ if "Nueva" in page:
         st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
         st.markdown('<div class="stitle">// ANÁLISIS TEMPORAL</div>', unsafe_allow_html=True)
 
-        fig_plotly = plotly_charts(r)
-        if fig_plotly:
-            st.plotly_chart(fig_plotly, use_container_width=True)
-        else:
-            # Fallback matplotlib
-            mfig = build_fig(r)
-            st.pyplot(mfig, use_container_width=True)
-            plt.close(mfig)
+        col_radar, col_charts = st.columns([1, 2], gap="large")
+        with col_radar:
+            fig_radar = plotly_radar(r)
+            if fig_radar:
+                st.plotly_chart(fig_radar, use_container_width=True)
+        with col_charts:
+            fig_plotly = plotly_charts(r)
+            if fig_plotly:
+                st.plotly_chart(fig_plotly, use_container_width=True)
+            else:
+                mfig = build_fig(r)
+                st.pyplot(mfig, use_container_width=True)
+                plt.close(mfig)
 
         # ── DESCARGAR DASHBOARD ──
         st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
