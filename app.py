@@ -779,18 +779,26 @@ def plotly_charts(r):
 
         # ── Cadencia ──
         if len(t_cad) > 2:
-            fig.add_hrect(y0=170, y1=185,
-                          fillcolor="rgba(57,217,138,0.07)", line_width=0)
+            x_range = [float(t_cad[0]/60), float(t_cad[-1]/60)]
+            # Zona optima como banda
+            fig.add_trace(go.Scatter(
+                x=x_range + x_range[::-1], y=[185,185,170,170],
+                fill='toself', fillcolor="rgba(57,217,138,0.08)",
+                line=dict(width=0), showlegend=False, hoverinfo='skip'
+            ), row=1, col=1)
+            # Linea promedio
+            fig.add_trace(go.Scatter(
+                x=x_range, y=[float(cad), float(cad)],
+                mode='lines', line=dict(color=ACCENT, dash='dot', width=1.2),
+                showlegend=False, hoverinfo='skip'
+            ), row=1, col=1)
+            # Cadencia principal
             fig.add_trace(go.Scatter(
                 x=t_cad/60, y=cad_v, mode='lines',
                 line=dict(color=cc, width=2.5, shape='spline'),
                 fill='tozeroy', fillcolor="rgba(57,217,138,0.06)",
                 hovertemplate="<b>%{y:.0f} ppm</b><br>%{x:.1f} min<extra></extra>"
             ), row=1, col=1)
-            fig.add_hline(y=cad,
-                          line=dict(color=ACCENT, dash='dot', width=1.2),
-                          annotation_text=f" {cad:.0f} avg",
-                          annotation_font=dict(color=ACCENT, size=9, family="Space Grotesk"))
 
         # ── Fatigue ──
         if ft and fv:
@@ -821,10 +829,12 @@ def plotly_charts(r):
                 fill='tozeroy', fillcolor="rgba(200,255,0,0.07)",
                 hovertemplate="<b>%{y:.2f} m/s</b><br>%{x:.1f} min<extra></extra>"
             ), row=1, col=3)
-            fig.add_hline(y=np.mean(sp),
-                          line=dict(color=T, dash='dot', width=1),
-                          annotation_text=f" {np.mean(sp):.2f} avg",
-                          annotation_font=dict(color=T, size=9, family="Space Grotesk"))
+            avg_sp = float(np.mean(sp))
+            fig.add_trace(go.Scatter(
+                x=[float(tg[0]), float(tg[-1])], y=[avg_sp, avg_sp],
+                mode='lines', line=dict(color=T, dash='dot', width=1),
+                showlegend=False, hoverinfo='skip'
+            ), row=1, col=3)
         elif len(pv) > 4:
             imp=np.abs(pv)
             counts,bins=np.histogram(imp,bins=40)
